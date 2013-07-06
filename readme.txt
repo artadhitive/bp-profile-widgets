@@ -4,7 +4,7 @@ Donate link: http://slushman.com/
 Tags: buddypress, widget, music, player, Bandcamp, Tunecore, Reverbnation, SoundCloud, Noisetrade, embed, profile, video, YouTube, Vimeo, Veoh, uStream, Blip.tv, Blip, DailyMotion, gallery, photo, photos, slideshow, Flickr, Picasa, Photobucket, Facebook, dotPhoto, Fotki, text, HTML, Smugmug, funnyordie.com, Revision3, Hulu, Viddler, Qik, Mixcloud, oEmbed
 Requires at least: 2.9.1, Buddypress plugin
 Tested up to: 3.5.2
-Stable tag: 0.2
+Stable tag: 0.3
 License: GPLv2
 
 BP Profile Widgets allows BuddyPress users to embed a music player, video player, photo gallery, and/or a custom text widget on the sidebar of the user's profile page using custom profile fields from their profile form. This plugin requires that BuddyPress be installed and activated.
@@ -25,6 +25,7 @@ Features
 * Uses WordPress functions to fetch the oEmbed media players.
 * Uses WordPress transients to speed up loading oEmbed HTML
 * Widgets only appear on Profile pages
+* Widgets can be hidden if they don't contain data
 
 == Installation ==
 
@@ -124,7 +125,7 @@ The profile fields created by this plugin are set to only be seen by the user an
 
 = How do I make one or all of the widgets appear only on the user's profile page? =
 
-This has changed in version 0.2. Now, the widgets will only appear on the profile pages.
+This has changed as of version 0.2. Now, the widgets will only appear on the profile pages.
 
 
 == Screenshots ==
@@ -147,7 +148,11 @@ This has changed in version 0.2. Now, the widgets will only appear on the profil
 16. Text Widget on page
 
 == Changelog ==
-å
+
+= 0.3 =
+* BUG FIX: Profile fields were leaving data in the database when widgets were unchecked. This has now been resolved, all databases entries related to a profile field are removed when a widget is unchecked.
+* Each widget can now be hidden if the data for that widget is empty instead of displaying the empty message.
+
 = 0.2 =
 Widgets now only appear on profile pages.
 
@@ -158,6 +163,9 @@ Added config.php.
 Plugin created.
 
 == Upgrade Notice ==
+
+= 0.3 =
+BUG FIX: All data for profile fields are now removed when widgets are unchecked.
 
 = 0.2 =
 Widgets now only appear on profile pages.

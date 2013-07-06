@@ -20,6 +20,7 @@ class slushman_bp_profile_video_player_widget extends WP_Widget {
 		$this->fields[] = array( 'name' => 'Title', 'underscored' => 'title', 'type' => 'text', 'value' => 'Video Player' );
 		$this->fields[] = array( 'name' => 'Width', 'underscored' => 'width', 'type' => 'text', 'value' => '' );
 		$this->fields[] = array( 'name' => 'Empty Message', 'underscored' => 'emptymsg', 'type' => 'text', 'value' => 'This user has not activated their video player.' );
+		$this->fields[] = array( 'name' => 'Hide widget if empty', 'underscored' => 'hide_empty', 'type' => 'checkbox', 'value' => 0 );
 		$this->fields[] = array( 'name' => 'Aspect Ratio', 'underscored' => 'aspect', 'type' => 'select', 'value' => 'Normal', 'sels' => array( array( 'label' => 'Normal', 'value' => 'Normal' ), array( 'label' => 'HD', 'value' => 'HD' ) ) );
 		
 	} // End of __construct()
@@ -179,27 +180,33 @@ class slushman_bp_profile_video_player_widget extends WP_Widget {
 		
 		if ( bp_is_user_profile() ) {
 
-			extract( $args );
+			$url = xprofile_get_field_data( 'Video Player URL' );
 
-			echo $before_widget;
-					
-			$title = empty( $instance['title'] ) ? '' : apply_filters( 'widget_title', $instance['title'] );
-			
-			echo ( empty( $title ) ? '' : $before_title . $title . $after_title );
-					
-			do_action( 'bp_before_sidebar_me' );
-			
-			echo '<div id="sidebar-me">';
+			if ( $instance['hide_empty'] == 0 && !empty( $url ) ) {
 
-			$this->widget_output( $args, $instance );
+				extract( $args );
 
-			do_action( 'bp_sidebar_me' );
+				echo $before_widget;
+						
+				$title = empty( $instance['title'] ) ? '' : apply_filters( 'widget_title', $instance['title'] );
 				
-			echo '</div>';
-			
-			do_action( 'bp_after_sidebar_me' );
-			
-			echo $after_widget;
+				echo ( empty( $title ) ? '' : $before_title . $title . $after_title );
+						
+				do_action( 'bp_before_sidebar_me' );
+				
+				echo '<div id="sidebar-me">';
+
+				$this->widget_output( $args, $instance );
+
+				do_action( 'bp_sidebar_me' );
+					
+				echo '</div>';
+				
+				do_action( 'bp_after_sidebar_me' );
+				
+				echo $after_widget;
+
+			}
 
 		}
 		

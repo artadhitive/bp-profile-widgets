@@ -21,6 +21,7 @@ class slushman_bp_profile_photo_gallery_widget extends WP_Widget {
 		$this->fields[] = array( 'name' => 'Width', 'underscored' => 'width', 'type' => 'text', 'value' => '' );
 		$this->fields[] = array( 'name' => 'Height', 'underscored' => 'height', 'type' => 'text', 'value' => '' );
 		$this->fields[] = array( 'name' => 'Empty Message', 'underscored' => 'emptymsg', 'type' => 'text', 'value' => 'This user has not activated their photo gallery.' );
+		$this->fields[] = array( 'name' => 'Hide widget if empty', 'underscored' => 'hide_empty', 'type' => 'checkbox', 'value' => 0 );
 			
 	} // End of __construct()
 
@@ -208,27 +209,33 @@ class slushman_bp_profile_photo_gallery_widget extends WP_Widget {
 
 		if ( bp_is_user_profile() ) {
 
-			extract( $args );
+			$url = xprofile_get_field_data( 'Photo Gallery URL' );
 
-			echo $before_widget;
-					
-			$title = empty( $instance['title'] ) ? '' : apply_filters( 'widget_title', $instance['title'] );
-			
-			echo ( empty( $title ) ? '' : $before_title . $title . $after_title );
-					
-			do_action( 'bp_before_sidebar_me' );
-			
-			echo '<div id="sidebar-me">';
+			if ( $instance['hide_empty'] == 0 && !empty( $url ) ) {
 
-			$this->widget_output( $args, $instance );
+				extract( $args );
 
-			do_action( 'bp_sidebar_me' );
+				echo $before_widget;
+						
+				$title = empty( $instance['title'] ) ? '' : apply_filters( 'widget_title', $instance['title'] );
 				
-			echo '</div>';
-			
-			do_action( 'bp_after_sidebar_me' );
-			
-			echo $after_widget;
+				echo ( empty( $title ) ? '' : $before_title . $title . $after_title );
+						
+				do_action( 'bp_before_sidebar_me' );
+				
+				echo '<div id="sidebar-me">';
+
+				$this->widget_output( $args, $instance );
+
+				do_action( 'bp_sidebar_me' );
+					
+				echo '</div>';
+				
+				do_action( 'bp_after_sidebar_me' );
+				
+				echo $after_widget;
+
+			}
 
 		}
 
