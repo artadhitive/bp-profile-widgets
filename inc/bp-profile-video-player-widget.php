@@ -44,7 +44,7 @@ class slushman_bp_profile_video_player_widget extends WP_Widget {
 		$description 	= xprofile_get_field_data( 'Video Player Role' );
 		$width 			= $instance['width'];
 		$aspect 		= $instance['aspect'];
-		
+
 		// Determine the height from the width and aspect ratio in the Widget options
 
 		if ( !empty( $aspect ) ) {
@@ -80,7 +80,7 @@ class slushman_bp_profile_video_player_widget extends WP_Widget {
 		
 		} else {
 
-			$oembed = $slushman_bp_profile_widgets->oembed_transient( $videoURL, $service, $width, $height ); 
+			$oembed = $slushman_bp_profile_widgets->oembed_transient( $videoURL, $service, $width, $height );
 
 			if ( !$oembed && $service == 'facebook' ) {
 			

@@ -47,6 +47,14 @@ $this->fields[$i]['value'] 			= 0;
 $this->fields[$i]['desc'] 			= 'Check to use the BP Profile Text Box widget and create the required extended profile fields.';
 $i++;
 
+$this->fields[$i]['section'] 		= 'widget_selection';
+$this->fields[$i]['name'] 			= 'RSS Widget';
+$this->fields[$i]['underscored'] 	= 'BP_profile_rss_widget';
+$this->fields[$i]['type'] 			= 'checkbox';
+$this->fields[$i]['value'] 			= 0;
+$this->fields[$i]['desc'] 			= 'Check to use the BP Profile RSS widget and create the required extended profile fields.';
+$i++;
+
 // Custom Post Types
 
 

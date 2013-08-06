@@ -40,16 +40,9 @@ class slushman_bp_profile_music_player_widget extends WP_Widget {
 		$accountURL 	= xprofile_get_field_data( 'Music Player URL' );
 	 	$description 	= xprofile_get_field_data( 'Music Player Role' );
 	 	$width 			= $instance['width'];
-
-	 	if ( !empty( $accountURL ) ) {
-		 	
-		 	$host 		= parse_url( $accountURL, PHP_URL_HOST );
-		 	$exp		= explode( '.', $host );
-		 	$service 	= ( count( $exp ) >= 3 ? $exp[1] : $exp[0] );
-		 			 	
-	 	} // End of $accountURL empty check
+	 	$service 		= $this->find_service( $accountURL );
 	 	
-	 	if ( empty( $accountURL ) || empty( $service ) ) {
+	 	if ( empty( $accountURL ) || !$service ) {
 
 			echo '<p>' . ( !empty( $instance['emptymsg'] ) ? $instance['emptymsg'] : '' ) . '</p>';
 		
@@ -58,20 +51,28 @@ class slushman_bp_profile_music_player_widget extends WP_Widget {
 			$oembed = $slushman_bp_profile_widgets->oembed_transient( $accountURL, $service, $width );
 
 			if ( !$oembed && $service == 'bandcamp' ) {
-	 	
-		 		// Input example: http://thevibedials.bandcamp.com/album/the-vibe-dials
-		 	
-		 		/*$id_args['start'] 	= 'item_id=';
-		 		$id_args['end'] 	= '&item_type=album';
-		 		$id_args['url'] 	= $accountURL;
-		 		$bandcamp			= $slushkit->find_on_page( $id_args ); */
 
-		 		$id_args['start'] 	= '/v=2/album=';
-		 		$id_args['end'] 	= '/size=large/link';
-		 		$id_args['url'] 	= $accountURL;
-		 		$bandcamp			= $slushkit->find_on_page( $id_args ); ?>
+				// Input examples:
+				// 	http://thevibedials.bandcamp.com/album/the-vibe-dials
+				// 	http://music.afterosmosis.com/
+				// 	http://music.afterosmosis.com/track/perpetual
+
+				$starts = array( 'album=', 'track=' );
+
+				foreach ( $starts as $start ) {
+
+			 		$bandcamp = $this->find_ID_on_page( $service, $accountURL, $start );
+
+			 		if ( is_numeric( $bandcamp ) ) { 
+
+			 			$which = $start;
+			 			break; 
+
+			 		} // End of $bandcamp check
+
+				} ?>
 			 	
-			 	<iframe width="150" height="295" style="position: relative; display: block; width: 150px; height: 295px;" src="http://bandcamp.com/EmbeddedPlayer/v=2/album=<?php echo $bandcamp; ?>/size=tall/bgcol=FFFFFF/linkcol=4285BB/" allowtransparency="true" frameborder="0"></iframe><?php
+			 	<iframe style="border: 0; width: <?php echo $width; ?>; height: <?php echo ($width + 142); ?>px" src="http://bandcamp.com/EmbeddedPlayer/<?php echo $which . $bandcamp; ?>/size=large/bgcol=ffffff/linkcol=0687f5/notracklist=true/transparent=true/" seamless></iframe><?php
 		 	
 		 	} elseif ( !$oembed && $service == 'tunecore' ) {
 		 	
@@ -87,22 +88,16 @@ class slushman_bp_profile_music_player_widget extends WP_Widget {
 		 	} elseif ( !$oembed && $service == 'reverbnation' ) {
 		 	
 		 		// Input example: http://www.reverbnation.com/thevibedials
-		 	
-		 		$id_args['start'] 	= 'become_fan/';
-		 		$id_args['end'] 	= '?onbecomefan';
-		 		$id_args['url'] 	= $accountURL;
-		 		$reverbnation		= $slushkit->find_on_page( $id_args ); ?>
+		 		
+		 		$reverbnation = $this->find_ID_on_page( $service, $accountURL ); ?>
 
 		 		<iframe class="widget_iframe" src="http://www.reverbnation.com/widget_code/html_widget/artist_<?php echo $reverbnation; ?>?widget_id=50&pwc[design]=default&pwc[background_color]=%23333333&pwc[included_songs]=1&pwc[photo]=0%2C1&pwc[size]=fit" width="100%" height="320px" frameborder="0" scrolling="no"></iframe><?php
 		 	
 		 	} elseif ( !$oembed && $service == 'noisetrade' ) {
 		 	
 		 		// Input example: http://noisetrade.com/thevibedials/
-		 	
-		 		$id_args['start'] 	= 'content="http://s3.amazonaws.com/static.noisetrade.com/w/';
-		 		$id_args['end'] 	= '/cover1500x1500max.jpg"/>';
-		 		$id_args['url'] 	= $accountURL;
-		 		$noisetrade			= $slushkit->find_on_page( $id_args ); ?>
+
+		 		$noisetrade = $this->find_ID_on_page( $service, $accountURL ); ?>
 			 	
 		 		<iframe src="http://noisetrade.com/service/sharewidget/?id=<?php echo $noisetrade; ?>" width="100%" height="400" scrolling="no" frameBorder="0"></iframe><?php
 		 	
@@ -200,9 +195,9 @@ class slushman_bp_profile_music_player_widget extends WP_Widget {
 				
 				echo $after_widget;
 
-			}
+			} // End of empty checks
 
-		}
+		} // End of profile check
 
  	} // End of widget()
 
@@ -244,7 +239,206 @@ class slushman_bp_profile_music_player_widget extends WP_Widget {
 	 	return $instance;
 	 	
  	} // End of update()
- 		
+
+/**
+ * Determines the service from the posted URL
+ *
+ * @param	string			$URL		The URL from the profile field
+ *
+ * @return 	string | bool	$service 	The name of the service, or FALSE
+ */	  	
+ 	function find_service( $URL ) {
+
+ 		if ( empty( $URL ) ) { return FALSE; }
+
+ 		$service 	= FALSE;
+ 		$tags 		= array();
+ 		$services 	= array( array( 'bandcamp', 'BandCamp' ), array( 'noisetrade', 'NoiseTrade' ), array( 'reverbnation', 'ReverbNation' ), array( 'tunecore', 'TuneCore' ), array( 'soundcloud', 'SoundCloud' ), array( 'mixcloud', 'Mixcloud' ) );
+
+ 		foreach ( $services as $valid ) {
+
+ 			$service = $this->find_service_from_url( $URL, $valid );
+
+			if ( $service !== FALSE ) { break; }
+
+			$service = $this->find_service_on_page( $URL, $valid );
+				
+			if ( $service !== FALSE ) { break; }
+
+ 		} // End of $services foreach loop
+
+ 		return ( !$service ? FALSE : $service );
+
+ 	} // End of find_service()
+
+/**
+ * Determines the service by looking at the page metadata
+ *
+ * @param	string			$URL		The URL from the profile field
+ * @param	array			$valid		An array of service names
+ *
+ * @return 	string | bool	$service 	The name of the service, or FALSE
+ */
+ 	function find_service_from_url( $URL, $valid ) {
+
+ 		$service 	= FALSE;
+ 		$pos 		= stripos( $URL, $valid[0] );
+
+		if ( $pos !== FALSE ) {
+
+			$service = $valid[0];
+
+		}
+
+		return $service;
+
+ 	} // End of find_service_from_url() 	
+
+/**
+ * Determines the service by looking at the page metadata
+ *
+ * @param	string			$URL		The URL from the profile field
+ * @param	array			$valid		An array of service names
+ *
+ * @return 	string | bool	$service 	The name of the service, or FALSE
+ */
+ 	function find_service_on_page( $URL, $valid ) {
+
+ 		$key 	= md5( $URL );
+		$trans 	= get_transient( 'bppw_music_service_' . $key );
+
+		if ( $trans !== FALSE ) { return $trans; }
+
+ 		$service 	= FALSE;
+ 		$doc 		= new DOMDocument();
+ 		$data 		= array();
+
+		$doc->loadHTMLFile( $URL );
+
+		$items = $doc->getElementsByTagName( 'meta' );
+
+		foreach ( $items as $item ) {
+
+			$data[$item->getAttribute( 'property' )] = $item->getAttribute( 'content' );
+
+		} // End of $items foreach loop
+
+		foreach ( $items as $item ) {
+
+			$data[$item->getAttribute( 'name' )] = $item->getAttribute( 'content' );
+
+		} // End of $items foreach loop
+
+		// Handles ReverbNation, NoiseTrade, SoundCloud, Mixcloud
+		if ( isset( $data['og:site_name'] ) && $data['og:site_name'] == $valid[1] ) {
+
+			$service = $valid[0];
+
+		// Handles BandCamp
+		} elseif ( isset( $data['twitter:site'] ) && $data['twitter:site'] == $valid[0] ) {
+
+			$service = $valid[0];
+
+		// Handles TuneCore
+		} else {
+
+			$titles = $doc->getElementsByTagName( 'title' );
+
+			foreach ( $titles as $title ) {
+
+				$pos = stripos( $title->nodeValue, $valid[1] );
+
+				if ( $pos !== FALSE ) {
+
+					$service = $valid[0];
+					break;
+
+				}
+
+			} // End of $items foreach loop
+
+		} // End of $data check
+
+		$set = set_transient( 'bppw_music_service_' . $key, $service, HOUR_IN_SECONDS );
+
+		return $service;
+
+ 	} // End of find_service_on_page()
+
+/**
+ * Determines the service ID by looking for a transient
+ * then the page metadata, if there isn't a transient
+ *
+ * @param	string			$service	The name of the service
+ * @param	string			$URL		The URL from the profile field
+ * @param	array			$valid		An array of service names
+ *
+ * @return 	string | bool	$target 	The ID string or FALSE
+ */
+ 	function find_ID_on_page( $service, $URL, $startstr = '', $endstr = '' ) {
+
+ 		if ( empty( $service ) || empty( $URL ) ) { return FALSE; }
+
+		$key 	= md5( $URL );
+		$trans 	= get_transient( 'bppw_music_' . $key );
+
+		if ( $trans !== FALSE ) { return $trans; }
+
+ 		$doc 	= new DOMDocument();
+ 		$data 	= array();
+ 		$target = FALSE;
+
+		$doc->loadHTMLFile( $URL );
+
+		$items = $doc->getElementsByTagName( 'meta' );
+
+		foreach ( $items as $item ) {
+
+			$att 		= ( $item->hasAttribute( 'name' ) ? $item->getAttribute( 'name' ) : $item->getAttribute( 'property' ) );
+			$data[$att] = $item->getAttribute( 'content' );
+
+		} // End of $items foreach loop
+
+		if ( $service == 'bandcamp' ) {
+
+			$source = 'twitter:player';
+			$start 	= ( empty( $startstr ) ? 'album=' : $startstr );
+			$end 	= ( empty( $endstr ) ? '/size=large' : $endstr );
+
+		} elseif ( $service == 'reverbnation' ) {
+
+			$source = 'twitter:player';
+			$start 	= ( empty( $startstr ) ? 'artist_' : $startstr );
+			$end 	= ( empty( $endstr ) ? '?widget' : $endstr );
+
+		} elseif ( $service == 'noisetrade' ) {
+
+			$source = 'og:image';
+			$start 	= ( empty( $startstr ) ? 'com/w/' : $startstr );
+			$end 	= ( empty( $endstr ) ? '/cover' : $endstr );
+
+		}
+
+		if ( empty( $data[$source] ) ) { return FALSE; }
+		        
+        // Calculate the length of start
+        $startlength = strlen( $start );
+        
+        // Find where the target begins
+        $targetStart = strpos( $data[$source], $start ) + $startlength;
+        
+        // Find how long the playerID is
+		$targetLength = strpos( $data[$source], $end ) - $targetStart;
+        
+        // Extract playerID from $page
+		$target = substr( $data[$source], $targetStart, $targetLength );
+
+		$set = set_transient( 'bppw_music_' . $key, $target, HOUR_IN_SECONDS );
+
+		return $target;
+
+ 	} // End of find_service_on_page() 
+
 } // End of slushman_bp_profile_music_player_widget class
 
 ?>

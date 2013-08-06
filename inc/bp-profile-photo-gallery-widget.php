@@ -94,7 +94,7 @@ class slushman_bp_profile_photo_gallery_widget extends WP_Widget {
 				
 			} elseif ( !$oembed && $service == 'photobucket' ) {
 			
-				// Input example: http://s262.beta.photobucket.com/user/mandy_surfergirl91/library/CARS
+				// Input example: http://s262.photobucket.com/user/mandy_surfergirl91/library/CARS
 
 				$rss_args['url'] 	= $galleryURL;
 				$rss_args['start'] 	= 'rssFeed=http%3A%2F%2Ffeed';
@@ -155,7 +155,8 @@ class slushman_bp_profile_photo_gallery_widget extends WP_Widget {
 
 			} else {
 
-				// Input Examples: http://belmontphoto.smugmug.com/BelmontStockPhotos/Campus/Construction-Belmont-Heights/17820170_drJWcW
+				// Input Examples: 
+				// 	http://belmontphoto.smugmug.com/BelmontStockPhotos/Campus/Construction-Belmont-Heights/17820170_drJWcW
 		
 				echo $oembed;
 

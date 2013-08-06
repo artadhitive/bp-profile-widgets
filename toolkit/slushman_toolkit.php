@@ -317,8 +317,9 @@ if ( !class_exists( 'Slushman_Toolkit' ) ) {
 			extract( $params );
 			
 			// Store the page
-	        $remote = wp_remote_retrieve_body( wp_remote_get( $url ) );
-	        $page 	= ( !is_wp_error( $remote ) ? $remote : file_get_contents( $url ) );
+			$remote = wp_remote_get( $url );
+	        $body 	= wp_remote_retrieve_body( $remote );
+	        $page 	= ( !is_wp_error( $body ) ? $body : file_get_contents( $url ) );
 	        
 	        if ( !empty( $page ) ) {
 		        

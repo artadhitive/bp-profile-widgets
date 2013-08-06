@@ -3,8 +3,8 @@ Contributors: slushman
 Donate link: http://slushman.com/
 Tags: buddypress, widget, music, player, Bandcamp, Tunecore, Reverbnation, SoundCloud, Noisetrade, embed, profile, video, YouTube, Vimeo, Veoh, uStream, Blip.tv, Blip, DailyMotion, gallery, photo, photos, slideshow, Flickr, Picasa, Photobucket, Facebook, dotPhoto, Fotki, text, HTML, Smugmug, funnyordie.com, Revision3, Hulu, Viddler, Qik, Mixcloud, oEmbed
 Requires at least: 2.9.1, Buddypress plugin
-Tested up to: 3.5.2
-Stable tag: 0.3.1
+Tested up to: 3.6
+Stable tag: 0.4
 License: GPLv2
 
 BP Profile Widgets allows BuddyPress users to embed a music player, video player, photo gallery, and/or a custom text widget on the sidebar of the user's profile page using custom profile fields from their profile form. This plugin requires that BuddyPress be installed and activated.
@@ -19,11 +19,13 @@ Features
 * Users can embed one of the following slideshow galleries: Flickr, Picasa, Photobucket, Fotki, Smugmug, or dotPhoto.
 * Users can embed one of the following video players: YouTube, Vimeo, Veoh, DailyMotion, Facebook, Flickr, Blip.tv, funnyordie.com, Hulu, Revision3.com, Viddler, Qik, and uStream
 * Users can display a customizable text message, including HTML, in the Text Box widget
-* A description field is included for each widget allowing the user to explain their involvement.
+* Users can display a RSS feed on their profile in the RSS widget
+* A description field is included for each media widget allowing the user to explain their involvement.
 * Widget options for width and height of the slideshow.
 * Widget options for width and aspect ratio of the video player.
+* Widget options for item quantity for the RSS feed display.
 * Uses WordPress functions to fetch the oEmbed media players.
-* Uses WordPress transients to speed up loading oEmbed HTML
+* Uses WordPress transients to speed up loading players
 * Widgets only appear on Profile pages
 * Widgets can be hidden if they don't contain data
 
@@ -128,6 +130,7 @@ The profile fields created by this plugin are set to only be seen by the user an
 This has changed as of version 0.2. Now, the widgets will only appear on the profile pages.
 
 
+
 == Screenshots ==
 
 1. Music Player Widget options
@@ -149,6 +152,17 @@ This has changed as of version 0.2. Now, the widgets will only appear on the pro
 
 == Changelog ==
 
+= 0.4 =
+* Added RSS feed widget to display an RSS feed on a profile page
+* Changed Music Player widget to support custom URLs (like for Bandcamp)
+* Added find_service() function to expand options for determining the service
+* Added find_service_from_url() function to music player widget
+* Added find_service_on_page() function to music player widget
+* Added find_ID_on_page() function to music player widget
+* Made wp_remote_get() a separate variable in the toolkit function find_on_page()
+* Music player service and ID are stored in a transients to make page reloading faster
+* BUG FIX: Removed URL echo from video widget - oops.
+
 = 0.3.1 =
 * BUG FIX: Updated the album ID search parameters for the version 2 player.
 
@@ -167,17 +181,20 @@ This has changed as of version 0.2. Now, the widgets will only appear on the pro
 
 == Upgrade Notice ==
 
+= 0.4 =
+Added an RSS feed widget and bug fixes
+
 = 0.3.1 =
-* BUG FIX: Updated the album ID search parameters for the version 2 player.
+BUG FIX: Updated the album ID search parameters for the version 2 player.
 
 = 0.3 =
-* BUG FIX: All data for profile fields are now removed when widgets are unchecked.
+BUG FIX: All data for profile fields are now removed when widgets are unchecked.
 
 = 0.2 =
-* Widgets now only appear on profile pages.
+Widgets now only appear on profile pages.
 
 = 0.11 =
-* Added config.php to get rid of include error.
+Added config.php to get rid of include error.
 
 = 0.1 =
-* Plugin released.
+Plugin released.
