@@ -61,7 +61,7 @@ class slushman_bp_profile_music_player_widget extends WP_Widget {
 
 				foreach ( $starts as $start ) {
 
-			 		$bandcamp = $this->find_ID_on_page( $service, $accountURL, $start );
+			 		$bandcamp = $this->find_ID_via_dom( $service, $accountURL, $start );
 
 			 		if ( is_numeric( $bandcamp ) ) { 
 
@@ -89,7 +89,7 @@ class slushman_bp_profile_music_player_widget extends WP_Widget {
 		 	
 		 		// Input example: http://www.reverbnation.com/thevibedials
 		 		
-		 		$reverbnation = $this->find_ID_on_page( $service, $accountURL ); ?>
+		 		$reverbnation = $this->find_ID_via_dom( $service, $accountURL ); ?>
 
 		 		<iframe class="widget_iframe" src="http://www.reverbnation.com/widget_code/html_widget/artist_<?php echo $reverbnation; ?>?widget_id=50&pwc[design]=default&pwc[background_color]=%23333333&pwc[included_songs]=1&pwc[photo]=0%2C1&pwc[size]=fit" width="100%" height="320px" frameborder="0" scrolling="no"></iframe><?php
 		 	
@@ -97,7 +97,7 @@ class slushman_bp_profile_music_player_widget extends WP_Widget {
 		 	
 		 		// Input example: http://noisetrade.com/thevibedials/
 
-		 		$noisetrade = $this->find_ID_on_page( $service, $accountURL ); ?>
+		 		$noisetrade = $this->find_ID_via_dom( $service, $accountURL ); ?>
 			 	
 		 		<iframe src="http://noisetrade.com/service/sharewidget/?id=<?php echo $noisetrade; ?>" width="100%" height="400" scrolling="no" frameBorder="0"></iframe><?php
 		 	
@@ -251,6 +251,11 @@ class slushman_bp_profile_music_player_widget extends WP_Widget {
 
  		if ( empty( $URL ) ) { return FALSE; }
 
+ 		$key 	= md5( $URL );
+		$trans 	= get_transient( 'bppw_music_service_' . $key );
+
+		if ( $trans !== FALSE ) { return $trans; }
+
  		$service 	= FALSE;
  		$tags 		= array();
  		$services 	= array( array( 'bandcamp', 'BandCamp' ), array( 'noisetrade', 'NoiseTrade' ), array( 'reverbnation', 'ReverbNation' ), array( 'tunecore', 'TuneCore' ), array( 'soundcloud', 'SoundCloud' ), array( 'mixcloud', 'Mixcloud' ) );
@@ -261,13 +266,25 @@ class slushman_bp_profile_music_player_widget extends WP_Widget {
 
 			if ( $service !== FALSE ) { break; }
 
-			$service = $this->find_service_on_page( $URL, $valid );
-				
+			if ( ini_get( 'allow_url_fopen' ) == 1 ) {
+
+				$service = $this->service_via_dom( $URL, $valid );
+
+			} else {
+
+				$service = $this->find_service_on_page( $URL, $valid );
+
+			} // End of PHP config check
+	
 			if ( $service !== FALSE ) { break; }
 
  		} // End of $services foreach loop
 
- 		return ( !$service ? FALSE : $service );
+ 		if ( !$service ) { return FALSE; }
+
+		$set = set_transient( 'bppw_music_service_' . $key, $service, HOUR_IN_SECONDS );
+
+		return $service;
 
  	} // End of find_service()
 
@@ -284,15 +301,64 @@ class slushman_bp_profile_music_player_widget extends WP_Widget {
  		$service 	= FALSE;
  		$pos 		= stripos( $URL, $valid[0] );
 
-		if ( $pos !== FALSE ) {
+		if ( !$pos ) { return FALSE; }
 
-			$service = $valid[0];
+		return $valid[0];
 
-		}
+ 	} // End of find_service_from_url()
 
-		return $service;
+/**
+ * Determines the service using the Toolkit function find_on_page()
+ *
+ * @param	string			$URL		The URL from the profile field
+ * @param	array			$valid		An array of service names
+ *
+ * @uses 	find_on_page
+ *
+ * @return 	string | bool	$service 	The name of the service or FALSE
+ */
+ 	function find_service_on_page( $URL, $valid ) {
 
- 	} // End of find_service_from_url() 	
+ 		global $slushkit;
+
+ 		if ( $valid[0] == 'bandcamp' ) {
+
+ 			$args['start'] 	= 'twitter:player" content="https://';
+ 			$args['end'] 	= '.com/EmbeddedPlayer/v=2';
+
+ 		} elseif ( $valid[0] == 'noisetrade' ) {
+
+ 			$args['start'] 	= '<a href="http://www.youtube.com/';
+ 			$args['end'] 	= '" target="_blank"><img src="/images/youtube-header.png"';
+
+ 		} elseif ( $valid[0] == 'reverbnation' ) {
+
+ 			$args['start'] 	= 'content="https://www.';
+ 			$args['end'] 	= '.com/widget_code';
+
+ 		} elseif ( $valid[0] == 'tunecore' ) {
+
+ 			$args['start'] 	= '"http://s3assets.';
+ 			$args['end'] 	= '.com.s3.amazonaws.com';
+
+ 		} elseif ( $valid[0] == 'soundcloud' ) {
+
+ 			$args['start'] 	= 'href="http://help.';
+ 			$args['end'] 	= '.com" target="_blank"';
+
+ 		} elseif ( $valid[0] == 'mixcloud' ) {
+
+ 			$args['start'] 	= 'og:audio" content="http://www.';
+ 			$args['end'] 	= '.com/player/facebook/"';
+
+ 		} // End of $valid check
+
+ 		$args['url'] 	= $URL;
+ 		$service		= $slushkit->find_on_page( $args );
+
+ 		return $service;
+
+ 	} // End of find_service_on_page()
 
 /**
  * Determines the service by looking at the page metadata
@@ -302,12 +368,7 @@ class slushman_bp_profile_music_player_widget extends WP_Widget {
  *
  * @return 	string | bool	$service 	The name of the service, or FALSE
  */
- 	function find_service_on_page( $URL, $valid ) {
-
- 		$key 	= md5( $URL );
-		$trans 	= get_transient( 'bppw_music_service_' . $key );
-
-		if ( $trans !== FALSE ) { return $trans; }
+ 	function service_via_dom( $URL, $valid ) {
 
  		$service 	= FALSE;
  		$doc 		= new DOMDocument();
@@ -359,11 +420,98 @@ class slushman_bp_profile_music_player_widget extends WP_Widget {
 
 		} // End of $data check
 
-		$set = set_transient( 'bppw_music_service_' . $key, $service, HOUR_IN_SECONDS );
-
 		return $service;
 
- 	} // End of find_service_on_page()
+ 	} // End of service_via_dom()
+
+/**
+ * Determines the service ID from the URL and service
+ * If the ID is found, it is set in a transient
+ *
+ * @param	string			$URL		The URL from the profile field
+ * @param	string			$service	The name of the service
+ *
+ * @uses 	get_transient
+ * @uses    find_ID_on_page
+ * @uses 	find_ID_via_dom
+ *
+ * @return 	string | bool	$ID 		The ID string or FALSE
+ */
+ 	function find_id( $URL, $service ) {
+
+ 		if ( empty( $URL ) || empty( $service ) ) { return FALSE; }
+
+ 		$key 	= md5( $URL );
+		$trans 	= get_transient( 'bppw_music_' . $key );
+
+		if ( $trans !== FALSE ) { return $trans; }
+
+ 		$ID = FALSE;
+
+ 		if ( ini_get( 'allow_url_fopen' ) == 0 ) {
+
+			$ID = $this->find_ID_on_page( $URL, $service );
+
+		} else {
+
+			if ( $service != 'tunecore' ) { 
+
+				$ID = $this->find_ID_via_dom( $URL, $service );
+
+			} // End of $service check
+
+		} // End of PHP config check
+
+		if ( !$ID ) { return FALSE; }
+
+		$ID = $this->find_ID_via_dom( $URL, $service );
+
+		return $ID;
+
+ 	} // End of find_id()
+
+/**
+ * Determines the service ID using the Toolkit function find_on_page()
+ *
+ * @param	string			$service	The name of the service
+ * @param	string			$URL		The URL from the profile field
+ *
+ * @uses 	find_on_page
+ *
+ * @return 	string | bool	$ID 		The ID string or FALSE
+ */
+ 	function find_ID_on_page( $URL, $service ) {
+
+ 		global $slushkit;
+
+ 		if ( $service == 'bandcamp' ) {
+
+ 			$id_args['start'] 	= 'item_id=';
+ 			$id_args['end'] 	= '&item_type=';
+
+ 		} elseif ( $service == 'noisetrade' ) {
+
+ 			$id_args['start'] 	= 'content="http://s3.amazonaws.com/static.noisetrade.com/w/';
+ 			$id_args['end'] 	= '/cover1500x1500max.jpg"/>';
+
+ 		} elseif ( $service == 'reverbnation' ) {
+
+ 			$id_args['start'] 	= 'become_fan/';
+ 			$id_args['end'] 	= '?onbecomefan';
+
+ 		} elseif ( $service == 'tunecore' ) {
+
+ 			$id_args['start'] 	= '<embed src="http://widget.tunecore.com/swf/tc_run_h_v2.swf?widget_id=';
+ 			$id_args['end'] 	= '" type="application/x-shockwave-flash"';
+
+ 		} // End of $service check
+
+ 		$id_args['url'] = $URL;
+ 		$ID				= $slushkit->find_on_page( $id_args );
+
+ 		return $ID;
+
+ 	} // End of find_ID_on_page()
 
 /**
  * Determines the service ID by looking for a transient
@@ -373,16 +521,13 @@ class slushman_bp_profile_music_player_widget extends WP_Widget {
  * @param	string			$URL		The URL from the profile field
  * @param	array			$valid		An array of service names
  *
+ * @uses 	DOMDocument
+ *
  * @return 	string | bool	$target 	The ID string or FALSE
  */
- 	function find_ID_on_page( $service, $URL, $startstr = '', $endstr = '' ) {
+ 	function find_ID_via_dom( $service, $URL, $startstr = '', $endstr = '' ) {
 
  		if ( empty( $service ) || empty( $URL ) ) { return FALSE; }
-
-		$key 	= md5( $URL );
-		$trans 	= get_transient( 'bppw_music_' . $key );
-
-		if ( $trans !== FALSE ) { return $trans; }
 
  		$doc 	= new DOMDocument();
  		$data 	= array();
@@ -433,11 +578,9 @@ class slushman_bp_profile_music_player_widget extends WP_Widget {
         // Extract playerID from $page
 		$target = substr( $data[$source], $targetStart, $targetLength );
 
-		$set = set_transient( 'bppw_music_' . $key, $target, HOUR_IN_SECONDS );
-
 		return $target;
 
- 	} // End of find_service_on_page() 
+ 	} // End of find_ID_via_dom() 
 
 } // End of slushman_bp_profile_music_player_widget class
 
