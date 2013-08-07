@@ -41,6 +41,8 @@ class slushman_bp_profile_music_player_widget extends WP_Widget {
 	 	$description 	= xprofile_get_field_data( 'Music Player Role' );
 	 	$width 			= $instance['width'];
 	 	$service 		= $this->find_service( $accountURL );
+
+	 	// echo '<p>$service: ' . $service . '</p>';
 	 	
 	 	if ( empty( $accountURL ) || !$service ) {
 
@@ -61,7 +63,7 @@ class slushman_bp_profile_music_player_widget extends WP_Widget {
 
 				foreach ( $starts as $start ) {
 
-			 		$bandcamp = $this->find_ID_via_dom( $service, $accountURL, $start );
+			 		$bandcamp = $this->find_ID( $service, $accountURL, $start );
 
 			 		if ( is_numeric( $bandcamp ) ) { 
 
@@ -77,11 +79,8 @@ class slushman_bp_profile_music_player_widget extends WP_Widget {
 		 	} elseif ( !$oembed && $service == 'tunecore' ) {
 		 	
 		 		// Input example: http://www.tunecore.com/music/thevibedials
-		 	
-		 		$id_args['start'] 	= '<embed src="http://widget.tunecore.com/swf/tc_run_h_v2.swf?widget_id=';
-		 		$id_args['end'] 	= '" type="application/x-shockwave-flash"';
-		 		$id_args['url'] 	= $accountURL;
-		 		$tunecore			= $slushkit->find_on_page( $id_args ); ?>
+		 		
+		 		$tunecore = $this->find_ID( $service, $accountURL ); ?>
 			 	
 			 	<object width="160" height="400" class="tunecore"><param name="movie" value="http://widget.tunecore.com/swf/tc_run_v_v2.swf?widget_id=<?php echo $tunecore; ?>"></param><param name="allowFullScreen" value="true"></param><param name="allowscriptaccess" value="always"></param><embed src="http://widget.tunecore.com/swf/tc_run_v_v2.swf?widget_id=<?php echo $tunecore; ?>" type="application/x-shockwave-flash" allowscriptaccess="always" allowfullscreen="true" width="160" height="400"></embed></object><?php
 		 	
@@ -89,7 +88,7 @@ class slushman_bp_profile_music_player_widget extends WP_Widget {
 		 	
 		 		// Input example: http://www.reverbnation.com/thevibedials
 		 		
-		 		$reverbnation = $this->find_ID_via_dom( $service, $accountURL ); ?>
+		 		$reverbnation = $this->find_ID( $service, $accountURL ); ?>
 
 		 		<iframe class="widget_iframe" src="http://www.reverbnation.com/widget_code/html_widget/artist_<?php echo $reverbnation; ?>?widget_id=50&pwc[design]=default&pwc[background_color]=%23333333&pwc[included_songs]=1&pwc[photo]=0%2C1&pwc[size]=fit" width="100%" height="320px" frameborder="0" scrolling="no"></iframe><?php
 		 	
@@ -97,7 +96,7 @@ class slushman_bp_profile_music_player_widget extends WP_Widget {
 		 	
 		 		// Input example: http://noisetrade.com/thevibedials/
 
-		 		$noisetrade = $this->find_ID_via_dom( $service, $accountURL ); ?>
+		 		$noisetrade = $this->find_ID( $service, $accountURL ); ?>
 			 	
 		 		<iframe src="http://noisetrade.com/service/sharewidget/?id=<?php echo $noisetrade; ?>" width="100%" height="400" scrolling="no" frameBorder="0"></iframe><?php
 		 	
@@ -266,15 +265,7 @@ class slushman_bp_profile_music_player_widget extends WP_Widget {
 
 			if ( $service !== FALSE ) { break; }
 
-			if ( ini_get( 'allow_url_fopen' ) == 1 ) {
-
-				$service = $this->service_via_dom( $URL, $valid );
-
-			} else {
-
-				$service = $this->find_service_on_page( $URL, $valid );
-
-			} // End of PHP config check
+			$service = ( ini_get( 'allow_url_fopen' ) == 1 ? $this->service_via_dom( $URL, $valid ) : $this->find_service_on_page( $URL ) );
 	
 			if ( $service !== FALSE ) { break; }
 
@@ -317,46 +308,53 @@ class slushman_bp_profile_music_player_widget extends WP_Widget {
  *
  * @return 	string | bool	$service 	The name of the service or FALSE
  */
- 	function find_service_on_page( $URL, $valid ) {
+ 	function find_service_on_page( $URL ) {
 
  		global $slushkit;
 
- 		if ( $valid[0] == 'bandcamp' ) {
+ 		$i 			= 0;
+ 		$service 	= FALSE;
 
- 			$args['start'] 	= 'twitter:player" content="https://';
- 			$args['end'] 	= '.com/EmbeddedPlayer/v=2';
+ 		$bookends[$i]['start'] 	= 'twitter:player" content="https://';
+ 		$bookends[$i]['end'] 	= '.com/EmbeddedPlayer/v=2';
+ 		$i++;
 
- 		} elseif ( $valid[0] == 'noisetrade' ) {
+		$bookends[$i]['start'] 	= '<a href="http://www.youtube.com/';
+		$bookends[$i]['end'] 	= '" target="_blank"><img src="/images/youtube-header.png"';
+		$i++;
 
- 			$args['start'] 	= '<a href="http://www.youtube.com/';
- 			$args['end'] 	= '" target="_blank"><img src="/images/youtube-header.png"';
+		$bookends[$i]['start'] 	= 'content="https://www.';
+		$bookends[$i]['end'] 	= '.com/widget_code';
+		$i++;
 
- 		} elseif ( $valid[0] == 'reverbnation' ) {
+		$bookends[$i]['start'] 	= '"http://s3assets.';
+		$bookends[$i]['end'] 	= '.com.s3.amazonaws.com';
+		$i++;
 
- 			$args['start'] 	= 'content="https://www.';
- 			$args['end'] 	= '.com/widget_code';
+		$bookends[$i]['start'] 	= 'href="http://help.';
+		$bookends[$i]['end'] 	= '.com" target="_blank"';
+		$i++;
 
- 		} elseif ( $valid[0] == 'tunecore' ) {
+		$bookends[$i]['start'] 	= 'og:audio" content="http://www.';
+		$bookends[$i]['end'] 	= '.com/player/facebook/"';
 
- 			$args['start'] 	= '"http://s3assets.';
- 			$args['end'] 	= '.com.s3.amazonaws.com';
+		foreach ( $bookends as $bookend ) {
 
- 		} elseif ( $valid[0] == 'soundcloud' ) {
+			$args['start'] 	= $bookend['start'];
+			$args['end'] 	= $bookend['end'];
+			$args['url'] 	= $URL;
+ 			$check			= $slushkit->find_on_page( $args );
 
- 			$args['start'] 	= 'href="http://help.';
- 			$args['end'] 	= '.com" target="_blank"';
+ 			if ( $check == 'bandcamp' || $check == 'noisetrade' || $check == 'reverbnation' || $check == 'tunecore' || $check == 'soundcloud' || $check == 'mixcloud' ) {
 
- 		} elseif ( $valid[0] == 'mixcloud' ) {
+ 				$service = $check;
+ 				break;
 
- 			$args['start'] 	= 'og:audio" content="http://www.';
- 			$args['end'] 	= '.com/player/facebook/"';
+ 			}
 
- 		} // End of $valid check
+		} // End of $bookends foreach loop
 
- 		$args['url'] 	= $URL;
- 		$service		= $slushkit->find_on_page( $args );
-
- 		return $service;
+		return $service;
 
  	} // End of find_service_on_page()
 
