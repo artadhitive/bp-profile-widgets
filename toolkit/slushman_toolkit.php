@@ -173,8 +173,8 @@ if ( !class_exists( 'Slushman_Toolkit' ) ) {
 		function add_menu() {
 		
 			add_options_page( 
-				__( 'Slushman Toolkit Demo' ), 
-				__( 'Slushman Toolkit Demo' ), 
+				'Slushman Toolkit Demo', 
+				'Slushman Toolkit Demo', 
 				'manage_options', 
 				'slushman-toolkit', 
 				array( $this, 'demo_page' ) 
@@ -320,25 +320,23 @@ if ( !class_exists( 'Slushman_Toolkit' ) ) {
 			$remote = wp_remote_get( $url );
 	        $body 	= wp_remote_retrieve_body( $remote );
 	        $page 	= ( !is_wp_error( $body ) ? $body : file_get_contents( $url ) );
+
+	        if ( empty( $page ) ) { return FALSE; }
 	        
-	        if ( !empty( $page ) ) {
-		        
-		        // Calculate the length of start
-		        $startlength = strlen( $start );
-		        
-		        // Find where the target begins
-		        $targetStart = strpos( $page, $start ) + $startlength;
-		        
-		        // Find how long the playerID is
-				$targetLength = strpos( $page, $end ) - $targetStart;
-		        
-		        // Extract playerID from $page
-				$target = substr( $page, $targetStart, $targetLength );
-				
-				return $target;
-		        
-	        } // End of $page check
+	        // Calculate the length of start
+	        $startlength = strlen( $start );
 	        
+	        // Find where the target begins
+	        $targetStart = strpos( $page, $start ) + $startlength;
+	        
+	        // Find how long the playerID is
+			$targetLength = strpos( $page, $end ) - $targetStart;
+	        
+	        // Extract playerID from $page
+			$target = substr( $page, $targetStart, $targetLength );
+			
+			return $target;
+		        
 		} // End of find_on_page()
 
 /**

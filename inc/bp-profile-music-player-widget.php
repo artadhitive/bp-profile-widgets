@@ -8,19 +8,30 @@ class slushman_bp_profile_music_player_widget extends WP_Widget {
  	function __construct() {
  	
  		$name 					= 'BP Profile Music Player';
- 		$opts['description'] 	= __( 'Add a music player to your BuddyPress profile page.', 'slushman-bp-profile-music-player' );
+ 		$this->i18n 			= 'bp-profile-widgets';
+ 		$opts['description'] 	= __( 'Add a music player to your BuddyPress profile page.', 'slushman-bp-profile-music-player', $this->i18n );
  		
  		parent::__construct( false, $name, $opts );
  		
-		// Future i10n support
-		// load_plugin_textdomain( PLUGIN_LOCALE, false, dirname( plugin_basename( __FILE__ ) ) . '/lang/' );
-		
 		// Form fields
 		// required: name, underscored, type, & value. optional: desc, sels, size
-		$this->fields[] = array( 'name' => 'Title', 'underscored' => 'title', 'type' => 'text', 'value' => 'Music Player' );
-		$this->fields[] = array( 'name' => 'Width', 'underscored' => 'width', 'type' => 'text', 'value' => '200px' );
-		$this->fields[] = array( 'name' => 'Empty Message', 'underscored' => 'emptymsg', 'type' => 'text', 'value' => 'This user has not activated their music player.' );
-		$this->fields[] = array( 'name' => 'Hide widget if empty', 'underscored' => 'hide_empty', 'type' => 'checkbox', 'value' => 0 );
+		$this->fields[] = array( 'name' => __( 'Title', $this->i18n ), 'underscored' => 'title', 'type' => 'text', 'value' => __( 'Music Player', $this->i18n ) );
+		$this->fields[] = array( 'name' => __( 'Width', $this->i18n ), 'underscored' => 'width', 'type' => 'text', 'value' => '200px' );
+		$this->fields[] = array( 'name' => __( 'Height', $this->i18n ), 'underscored' => 'height', 'type' => 'text', 'value' => '320px' );
+		$this->fields[] = array( 'name' => __( 'Empty Message', $this->i18n ), 'underscored' => 'emptymsg', 'type' => 'text', 'value' => __( 'This user has not activated their music player.', $this->i18n ) );
+		$this->fields[] = array( 'name' => __( 'Hide widget if empty', $this->i18n ), 'underscored' => 'hide_empty', 'type' => 'checkbox', 'value' => 0 );
+
+		$this->options 	= (array) get_option( 'slushman_bppw_settings' );
+		$quantity 		= $this->options['BP_profile_music_player_widget'];
+
+		// Create $selects for how many items select menu
+		for ( $i = 1; $i <= $quantity; $i++ ) {
+
+			$instance_selects[] = array( 'label' => $i, 'value' => $i );
+
+		} // End of for loop
+
+		$this->fields[] = array( 'name' => __( 'If you use multiple widgets: which one is this?', $this->i18n ), 'underscored' => 'instance_number', 'type' => 'select', 'value' => 1, 'sels' => $instance_selects );
 
  	} // End of __construct()
 
@@ -33,54 +44,60 @@ class slushman_bp_profile_music_player_widget extends WP_Widget {
  * @uses    oembed_transient
  * @uses    find_on_page
  */
-	function widget_output( $args, $instance ) {
+	function widget_output( $instance ) {
 
 		global $slushman_bp_profile_widgets, $slushkit;
 
-		$accountURL 	= xprofile_get_field_data( 'Music Player URL' );
-	 	$description 	= xprofile_get_field_data( 'Music Player Role' );
-	 	$width 			= $instance['width'];
-	 	$service 		= $this->find_service( $accountURL );
+		$urlfield 	= __( 'Music Player URL', $this->i18n );
+		$rolefield	= __( 'Music Player Role', $this->i18n );
+		$url 		= $slushman_bp_profile_widgets->bppw_get_profile_data( $instance, $urlfield );
+		$desc 		= $slushman_bp_profile_widgets->bppw_get_profile_data( $instance, $rolefield );
+	 	$width 		= $instance['width'];
+	 	$height 	= $instance['height'];
+	 	$service 	= $this->find_service( $url );
 
-	 	// echo '<p>$service: ' . $service . '</p>';
+	 	//echo '<p>$url: ' . $url . '</p>';
+	 	//echo '<p>$service: ' . $service . '</p>';
 	 	
-	 	if ( empty( $accountURL ) || !$service ) {
+	 	if ( empty( $url ) || !$service ) {
 
 			echo '<p>' . ( !empty( $instance['emptymsg'] ) ? $instance['emptymsg'] : '' ) . '</p>';
 		
 		} else {
 
-			$oembed = $slushman_bp_profile_widgets->oembed_transient( $accountURL, $service, $width );
+			$oembed = $slushman_bp_profile_widgets->oembed_transient( $url, $service, $width );
 
 			if ( !$oembed && $service == 'bandcamp' ) {
 
 				// Input examples:
 				// 	http://thevibedials.bandcamp.com/album/the-vibe-dials
 				// 	http://music.afterosmosis.com/
-				// 	http://music.afterosmosis.com/track/perpetual
+				// 	http://music.afterosmosis.com/track/exhale
+				// 	http://michaelestok.bandcamp.com/track/time-2
 
-				$starts = array( 'album=', 'track=' );
+				$which = $this->albumortrack( $url );
 
-				foreach ( $starts as $start ) {
+				//echo '<p>$which: ' . $which . '</p>';
 
-			 		$bandcamp = $this->find_ID( $service, $accountURL, $start );
+				if ( !$which ) {
 
-			 		if ( is_numeric( $bandcamp ) ) { 
+					echo '<p>' . __( 'The URL you entered is not a valid BandCamp URL.', $this->i18n ) . '</p>';
 
-			 			$which = $start;
-			 			break; 
+				} else {
 
-			 		} // End of $bandcamp check
+					$bandcamp = $this->find_ID( $service, $url, $which );
 
-				} ?>
-			 	
-			 	<iframe style="border: 0; width: <?php echo $width; ?>; height: <?php echo ($width + 142); ?>px" src="http://bandcamp.com/EmbeddedPlayer/<?php echo $which . $bandcamp; ?>/size=large/bgcol=ffffff/linkcol=0687f5/notracklist=true/transparent=true/" seamless></iframe><?php
+					//echo '<p>$bandcamp: ' . $bandcamp . '</p>';
+
+					?><iframe style="border: 0; width: <?php echo $width; ?>px; height: <?php echo $width+142; ?>px" src="<?php echo sprintf( 'http://bandcamp.com/EmbeddedPlayer/%s=%d/size=large/bgcol=ffffff/linkcol=0687f5/tracklist=false/transparent=true/', $which, $bandcamp ); ?>" seamless></iframe><?php
+
+				} // End of $which check
 		 	
 		 	} elseif ( !$oembed && $service == 'tunecore' ) {
 		 	
 		 		// Input example: http://www.tunecore.com/music/thevibedials
 		 		
-		 		$tunecore = $this->find_ID( $service, $accountURL ); ?>
+		 		$tunecore = $this->find_ID( $service, $url ); ?>
 			 	
 			 	<object width="160" height="400" class="tunecore"><param name="movie" value="http://widget.tunecore.com/swf/tc_run_v_v2.swf?widget_id=<?php echo $tunecore; ?>"></param><param name="allowFullScreen" value="true"></param><param name="allowscriptaccess" value="always"></param><embed src="http://widget.tunecore.com/swf/tc_run_v_v2.swf?widget_id=<?php echo $tunecore; ?>" type="application/x-shockwave-flash" allowscriptaccess="always" allowfullscreen="true" width="160" height="400"></embed></object><?php
 		 	
@@ -88,17 +105,17 @@ class slushman_bp_profile_music_player_widget extends WP_Widget {
 		 	
 		 		// Input example: http://www.reverbnation.com/thevibedials
 		 		
-		 		$reverbnation = $this->find_ID( $service, $accountURL ); ?>
+		 		$reverbnation = $this->find_ID( $service, $url ); ?>
 
-		 		<iframe class="widget_iframe" src="http://www.reverbnation.com/widget_code/html_widget/artist_<?php echo $reverbnation; ?>?widget_id=50&pwc[design]=default&pwc[background_color]=%23333333&pwc[included_songs]=1&pwc[photo]=0%2C1&pwc[size]=fit" width="100%" height="320px" frameborder="0" scrolling="no"></iframe><?php
+		 		<iframe class="widget_iframe" src="http://www.reverbnation.com/widget_code/html_widget/artist_<?php echo $reverbnation; ?>?widget_id=50&pwc[design]=default&pwc[background_color]=%23333333&pwc[included_songs]=1&pwc[photo]=0%2C1&pwc[size]=fit" width="100%" height="<?php echo $height; ?>" frameborder="0" scrolling="no"></iframe><?php
 		 	
 		 	} elseif ( !$oembed && $service == 'noisetrade' ) {
 		 	
 		 		// Input example: http://noisetrade.com/thevibedials/
 
-		 		$noisetrade = $this->find_ID( $service, $accountURL ); ?>
+		 		$noisetrade = $this->find_ID( $service, $url ); ?>
 			 	
-		 		<iframe src="http://noisetrade.com/service/sharewidget/?id=<?php echo $noisetrade; ?>" width="100%" height="400" scrolling="no" frameBorder="0"></iframe><?php
+		 		<iframe src="http://noisetrade.com/service/sharewidget/?id=<?php echo $noisetrade; ?>" width="100%" height="<?php echo $height; ?>" scrolling="no" frameBorder="0"></iframe><?php
 		 	
 		 	} else {
 
@@ -112,7 +129,7 @@ class slushman_bp_profile_music_player_widget extends WP_Widget {
 
 		} // End of empty checks
 	 	
-	 	echo '<p>' . ( isset( $description ) && !empty( $description ) ? $description : '' ) . '</p>';
+	 	echo '<p>' . ( isset( $desc ) && !empty( $desc ) ? $desc : '' ) . '</p>';
 
 	} // End of widget_output()
 
@@ -170,7 +187,7 @@ class slushman_bp_profile_music_player_widget extends WP_Widget {
 
 			$url = xprofile_get_field_data( 'Music Player URL' );
 
-			if ( $instance['hide_empty'] == 0 && !empty( $url ) ) {
+			if ( !empty( $url ) || $instance['hide_empty'] == 0 ) {
 
 				extract( $args );
 
@@ -184,7 +201,7 @@ class slushman_bp_profile_music_player_widget extends WP_Widget {
 				
 				echo '<div id="sidebar-me">';
 
-				$this->widget_output( $args, $instance );
+				$this->widget_output( $instance );
 
 				do_action( 'bp_sidebar_me' );
 					
@@ -255,25 +272,20 @@ class slushman_bp_profile_music_player_widget extends WP_Widget {
 
 		if ( $trans !== FALSE ) { return $trans; }
 
- 		$service 	= FALSE;
- 		$tags 		= array();
- 		$services 	= array( array( 'bandcamp', 'BandCamp' ), array( 'noisetrade', 'NoiseTrade' ), array( 'reverbnation', 'ReverbNation' ), array( 'tunecore', 'TuneCore' ), array( 'soundcloud', 'SoundCloud' ), array( 'mixcloud', 'Mixcloud' ) );
+ 		$service = FALSE;
+ 		$service = $this->find_service_from_url( $URL );
 
- 		foreach ( $services as $valid ) {
+ 		if ( !$service ) {
 
- 			$service = $this->find_service_from_url( $URL, $valid );
+ 			$service = $this->find_service_on_page( $URL );
 
-			if ( $service !== FALSE ) { break; }
+ 		}
 
-			$service = ( ini_get( 'allow_url_fopen' ) == 1 ? $this->service_via_dom( $URL, $valid ) : $this->find_service_on_page( $URL ) );
-	
-			if ( $service !== FALSE ) { break; }
+ 		if ( $service !== FALSE ) { 
 
- 		} // End of $services foreach loop
+			$set = set_transient( 'bppw_music_service_' . $key, $service, HOUR_IN_SECONDS );
 
- 		if ( !$service ) { return FALSE; }
-
-		$set = set_transient( 'bppw_music_service_' . $key, $service, HOUR_IN_SECONDS );
+		}
 
 		return $service;
 
@@ -287,16 +299,22 @@ class slushman_bp_profile_music_player_widget extends WP_Widget {
  *
  * @return 	string | bool	$service 	The name of the service, or FALSE
  */
- 	function find_service_from_url( $URL, $valid ) {
+ 	function find_service_from_url( $URL ) {
 
+ 		$services 	= array( 'bandcamp', 'noisetrade', 'reverbnation', 'tunecore', 'soundcloud', 'mixcloud' );
  		$service 	= FALSE;
- 		$pos 		= stripos( $URL, $valid[0] );
 
-		if ( !$pos ) { return FALSE; }
+ 		foreach ( $services as $valid ) {
 
-		return $valid[0];
+ 			$pos = stripos( $URL, $valid );
 
- 	} // End of find_service_from_url()
+ 			if ( $pos !== false ) { $service = $valid; break; }
+
+ 		} // End of $services foreach loop
+
+ 		return $service;
+
+ 	} // End of find_service_from_url() 	
 
 /**
  * Determines the service using the Toolkit function find_on_page()
@@ -359,83 +377,22 @@ class slushman_bp_profile_music_player_widget extends WP_Widget {
  	} // End of find_service_on_page()
 
 /**
- * Determines the service by looking at the page metadata
- *
- * @param	string			$URL		The URL from the profile field
- * @param	array			$valid		An array of service names
- *
- * @return 	string | bool	$service 	The name of the service, or FALSE
- */
- 	function service_via_dom( $URL, $valid ) {
-
- 		$service 	= FALSE;
- 		$doc 		= new DOMDocument();
- 		$data 		= array();
-
-		$doc->loadHTMLFile( $URL );
-
-		$items = $doc->getElementsByTagName( 'meta' );
-
-		foreach ( $items as $item ) {
-
-			$data[$item->getAttribute( 'property' )] = $item->getAttribute( 'content' );
-
-		} // End of $items foreach loop
-
-		foreach ( $items as $item ) {
-
-			$data[$item->getAttribute( 'name' )] = $item->getAttribute( 'content' );
-
-		} // End of $items foreach loop
-
-		// Handles ReverbNation, NoiseTrade, SoundCloud, Mixcloud
-		if ( isset( $data['og:site_name'] ) && $data['og:site_name'] == $valid[1] ) {
-
-			$service = $valid[0];
-
-		// Handles BandCamp
-		} elseif ( isset( $data['twitter:site'] ) && $data['twitter:site'] == $valid[0] ) {
-
-			$service = $valid[0];
-
-		// Handles TuneCore
-		} else {
-
-			$titles = $doc->getElementsByTagName( 'title' );
-
-			foreach ( $titles as $title ) {
-
-				$pos = stripos( $title->nodeValue, $valid[1] );
-
-				if ( $pos !== FALSE ) {
-
-					$service = $valid[0];
-					break;
-
-				}
-
-			} // End of $items foreach loop
-
-		} // End of $data check
-
-		return $service;
-
- 	} // End of service_via_dom()
-
-/**
- * Determines the service ID from the URL and service
+ * Determines the service ID from the URL and service using the
+ * Toolkit function find_on_page().
  * If the ID is found, it is set in a transient
  *
  * @param	string			$URL		The URL from the profile field
  * @param	string			$service	The name of the service
  *
  * @uses 	get_transient
- * @uses    find_ID_on_page
- * @uses 	find_ID_via_dom
+ * @uses    find_on_page
+ * @uses 	set_transient
  *
  * @return 	string | bool	$ID 		The ID string or FALSE
  */
- 	function find_id( $URL, $service ) {
+ 	function find_id( $service, $URL, $start = '' ) {
+
+ 		global $slushkit;
 
  		if ( empty( $URL ) || empty( $service ) ) { return FALSE; }
 
@@ -444,48 +401,10 @@ class slushman_bp_profile_music_player_widget extends WP_Widget {
 
 		if ( $trans !== FALSE ) { return $trans; }
 
- 		$ID = FALSE;
-
- 		if ( ini_get( 'allow_url_fopen' ) == 0 ) {
-
-			$ID = $this->find_ID_on_page( $URL, $service );
-
-		} else {
-
-			if ( $service != 'tunecore' ) { 
-
-				$ID = $this->find_ID_via_dom( $URL, $service );
-
-			} // End of $service check
-
-		} // End of PHP config check
-
-		if ( !$ID ) { return FALSE; }
-
-		$ID = $this->find_ID_via_dom( $URL, $service );
-
-		return $ID;
-
- 	} // End of find_id()
-
-/**
- * Determines the service ID using the Toolkit function find_on_page()
- *
- * @param	string			$service	The name of the service
- * @param	string			$URL		The URL from the profile field
- *
- * @uses 	find_on_page
- *
- * @return 	string | bool	$ID 		The ID string or FALSE
- */
- 	function find_ID_on_page( $URL, $service ) {
-
- 		global $slushkit;
-
  		if ( $service == 'bandcamp' ) {
 
- 			$id_args['start'] 	= 'item_id=';
- 			$id_args['end'] 	= '&item_type=';
+ 			$id_args['start'] 	= 'v=2/' . $start . '=';
+ 			$id_args['end'] 	= '/size=large/linkcol';
 
  		} elseif ( $service == 'noisetrade' ) {
 
@@ -507,78 +426,46 @@ class slushman_bp_profile_music_player_widget extends WP_Widget {
  		$id_args['url'] = $URL;
  		$ID				= $slushkit->find_on_page( $id_args );
 
- 		return $ID;
+ 		if ( !$ID ) { 
 
- 	} // End of find_ID_on_page()
+ 			return FALSE; 
+
+ 		} else {
+
+	 		$set = set_transient( 'bppw_music_' . $key, $ID, HOUR_IN_SECONDS );
+
+ 			return $ID;
+
+ 		} // End of $ID check
+
+ 	} // End of find_id()
 
 /**
- * Determines the service ID by looking for a transient
- * then the page metadata, if there isn't a transient
- *
- * @param	string			$service	The name of the service
- * @param	string			$URL		The URL from the profile field
- * @param	array			$valid		An array of service names
- *
- * @uses 	DOMDocument
- *
- * @return 	string | bool	$target 	The ID string or FALSE
+ * Searches the page at the URL provided for either the string "album=" or "track=".
+ * Returns TRUE if found, otherwise FALSE if neither are found.
+ * 
+ * @param	string	$URL	The URL to search
+ * 
+ * @return	bool
  */
- 	function find_ID_via_dom( $service, $URL, $startstr = '', $endstr = '' ) {
+ 	function albumortrack( $URL ) {
 
- 		if ( empty( $service ) || empty( $URL ) ) { return FALSE; }
+ 		$remote 	= wp_remote_get( $URL );
+	    $body 		= wp_remote_retrieve_body( $remote );
+	    $page 		= ( !is_wp_error( $body ) ? $body : file_get_contents( $URL ) );
+	    $needles 	= array( 'track=', 'album=' );
 
- 		$doc 	= new DOMDocument();
- 		$data 	= array();
- 		$target = FALSE;
+	    foreach ( $needles as $needle ) {
 
-		$doc->loadHTMLFile( $URL );
+	    	$found = strpos( $page, $needle );
 
-		$items = $doc->getElementsByTagName( 'meta' );
+	    	if ( $found !== FALSE ) { return rtrim( $needle, '=' ); }
 
-		foreach ( $items as $item ) {
+	    } // End of foreach loop
 
-			$att 		= ( $item->hasAttribute( 'name' ) ? $item->getAttribute( 'name' ) : $item->getAttribute( 'property' ) );
-			$data[$att] = $item->getAttribute( 'content' );
+		return $found;
 
-		} // End of $items foreach loop
-
-		if ( $service == 'bandcamp' ) {
-
-			$source = 'twitter:player';
-			$start 	= ( empty( $startstr ) ? 'album=' : $startstr );
-			$end 	= ( empty( $endstr ) ? '/size=large' : $endstr );
-
-		} elseif ( $service == 'reverbnation' ) {
-
-			$source = 'twitter:player';
-			$start 	= ( empty( $startstr ) ? 'artist_' : $startstr );
-			$end 	= ( empty( $endstr ) ? '?widget' : $endstr );
-
-		} elseif ( $service == 'noisetrade' ) {
-
-			$source = 'og:image';
-			$start 	= ( empty( $startstr ) ? 'com/w/' : $startstr );
-			$end 	= ( empty( $endstr ) ? '/cover' : $endstr );
-
-		}
-
-		if ( empty( $data[$source] ) ) { return FALSE; }
-		        
-        // Calculate the length of start
-        $startlength = strlen( $start );
-        
-        // Find where the target begins
-        $targetStart = strpos( $data[$source], $start ) + $startlength;
-        
-        // Find how long the playerID is
-		$targetLength = strpos( $data[$source], $end ) - $targetStart;
-        
-        // Extract playerID from $page
-		$target = substr( $data[$source], $targetStart, $targetLength );
-
-		return $target;
-
- 	} // End of find_ID_via_dom() 
+ 	} // End of albumortrack()
 
 } // End of slushman_bp_profile_music_player_widget class
 
