@@ -220,9 +220,12 @@ class slushman_bp_profile_photo_gallery_widget extends WP_Widget {
  */	
 	function widget( $args, $instance ) {
 
-		if ( bp_is_user_profile() ) {
+		global $slushman_bp_profile_widgets;
 
-			$url = xprofile_get_field_data( 'Photo Gallery URL' );
+  		if ( bp_is_user_profile() ) {
+
+  			$urlfield 	= __( 'Photo Gallery URL', $this->i18n );
+			$url 		= $slushman_bp_profile_widgets->bppw_get_profile_data( $instance, $urlfield );
 
 			if ( !empty( $url ) || $instance['hide_empty'] == 0 ) {
 
