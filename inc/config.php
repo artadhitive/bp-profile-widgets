@@ -83,7 +83,7 @@ $this->profiles['video_player']['URL'] 		= array( 'type' => 'textbox', 'desc' =>
 $this->profiles['video_player']['role'] 	= array( 'type' => 'textbox', 'desc' => __( 'Please explain your role in the video (actor, writer, crew, producer, etc).', $this->constants['i18n'] ) );
 $this->profiles['photo_gallery']['URL'] 	= array( 'type' => 'textbox', 'desc' => __( 'Please enter the URL for the set / gallery / album / profile from any of the following services: Flickr, Picasa, Photobucket, Fotki, dotPhoto, or Imgur.', $this->constants['i18n'] ) );
 $this->profiles['photo_gallery']['role'] 	= array( 'type' => 'textbox', 'desc' => __( 'Please explain your role in the gallery (model, photographer, editor, etc).', $this->constants['i18n'] ) );
-$this->profiles['text_box'][0] 				= array( 'type' => 'textarea', 'desc' => __( 'Please enter the text you want to appear on your profile. HTML is allowed.', $this->constants['i18n'] ) );
+$this->profiles['custom_text']['box'] 		= array( 'type' => 'textarea', 'desc' => __( 'Please enter the text you want to appear on your profile. HTML is allowed.', $this->constants['i18n'] ) );
 $this->profiles['rss']['feed_URL'] 			= array( 'type' => 'textbox', 'desc' => __( 'Please enter the URL for the RSS or Atom feed you want to appear on your profile.', $this->constants['i18n'] ) );
 
 ?>

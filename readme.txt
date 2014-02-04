@@ -4,7 +4,7 @@ Donate link: http://slushman.com/
 Tags: buddypress, widget, music, player, Bandcamp, Tunecore, Reverbnation, SoundCloud, Noisetrade, embed, profile, video, YouTube, Vimeo, Veoh, uStream, Blip.tv, Blip, DailyMotion, gallery, photo, photos, slideshow, Flickr, Picasa, Photobucket, Facebook, dotPhoto, Fotki, text, HTML, Smugmug, funnyordie.com, Revision3, Hulu, Viddler, Qik, Mixcloud, oEmbed
 Requires at least: 2.9.1, Buddypress plugin
 Tested up to: 3.8
-Stable tag: 0.5.2
+Stable tag: 0.5.3
 License: GPLv2
 
 BP Profile Widgets allows BuddyPress users to embed a music player, video player, photo gallery, and/or a custom text widget on the sidebar of the user's profile page using custom profile fields from their profile form. This plugin requires that BuddyPress be installed and activated.
@@ -156,8 +156,11 @@ This has changed as of version 0.2. Now, the widgets will only appear on the pro
 
 == Changelog ==
 
+= 0.5.3 =
+* BUG FIX: Resolved the weird issues with upgrades. Eliminated many notices for new array items that aren't filled yet.
+
 = 0.5.2 =
-* BUG FIX: Text widget display error fixed. You can't name a field "Text Box" because that's a field type.
+* BUG FIX: Text widget display error fixed. Field name was incorrect from previous versions.
 * Added more items to be translated.
 
 = 0.5.1 =
@@ -212,6 +215,9 @@ This has changed as of version 0.2. Now, the widgets will only appear on the pro
 * Plugin created.
 
 == Upgrade Notice ==
+
+= 0.5.3 =
+* BUG FIX: Resolved the weird issues with upgrades.
 
 = 0.5.2 = 
 BUG FIX: Text Widget now works as expected.
